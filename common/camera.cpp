@@ -1,31 +1,3 @@
-#ifndef CAMERA_HPP
-#define CAMERA_HPP
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-class Camera {
-public:
-    Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch);
-
-    glm::mat4 GetViewMatrix() const;
-    void ProcessKeyboard(char direction, float deltaTime);
-
-    glm::vec3 Position;
-    glm::vec3 Front;
-    glm::vec3 Up;
-    glm::vec3 Right;
-    glm::vec3 WorldUp;
-
-    float Yaw;
-    float Pitch;
-
-private:
-    void updateCameraVectors();
-};
-
-#endif
-
 #include "camera.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
@@ -65,7 +37,6 @@ void Camera::updateCameraVectors()
     front.y = sin(glm::radians(Pitch));
     front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
     Front = glm::normalize(front);
-
     Right = glm::normalize(glm::cross(Front, WorldUp));
     Up = glm::normalize(glm::cross(Right, Front));
 }

@@ -15,14 +15,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
-struct Vertex 
+struct Vertex //room layout
 {
     glm::vec3 position;
     glm::vec2 texCoord;
     glm::vec3 normal;
 };
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
+
+void keyboardInput(GLFWwindow* window, Camera& camera, float deltaTime);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+float lastX = 512.0f, lastY = 384.0f; // Mouse start at screen center
+bool firstMouse = true;
+bool leftButtonHeld = false;
+
+GLuint roomVAO, roomVBO;
 
 std::vector<Vertex> cubeVertices = {
     // Back wall (-Z)
@@ -74,10 +84,59 @@ std::vector<Vertex> cubeVertices = {
     {{-10.0f,  10.0f,  10.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
 };
 
-// Function prototypes
-void keyboardInput(GLFWwindow *window);
+// Function prototypes 
+void keyboardInput(GLFWwindow* window, Camera& camera, float deltaTime)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 
-GLuint roomVAO, roomVBO;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard('W', deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard('S', deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard('A', deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard('D', deltaTime);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    {
+        if (action == GLFW_PRESS)
+            leftButtonHeld = true;
+        else if (action == GLFW_RELEASE)
+            leftButtonHeld = false;
+    }
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (!leftButtonHeld)
+    {
+        firstMouse = true;
+        return;
+    }
+
+    if (firstMouse)
+    {
+        lastX = (float)xpos;
+        lastY = (float)ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = (float)(xpos - lastX);
+    float yoffset = (float)(lastY - ypos); // reversed Y
+
+    lastX = (float)xpos;
+    lastY = (float)ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+
+
 int main( void )
 {
     // =========================================================================
@@ -109,6 +168,10 @@ int main( void )
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
@@ -119,7 +182,7 @@ int main( void )
         return -1;
     }
 
-    GLuint shaderProgram = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
+    GLuint shaderProgram = LoadShaders("vertexShader.glsl", "fragmentShader.glsl"); //shaders
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -147,7 +210,7 @@ int main( void )
     glBindVertexArray(0);
 
     GLuint whiteTex;
-    // === Generate a procedural checkerboard texture ===
+    //checkerboard texture
     const int texWidth = 64;
     const int texHeight = 64;
     unsigned char checkerData[texWidth * texHeight * 3];
@@ -181,36 +244,39 @@ int main( void )
     // Ensure we can capture keyboard inputs
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
+    float deltaTime = 0.0f; // time between current frame and last frame
+    float lastFrame = 0.0f; // time of last frame
+
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         // Get inputs
-        keyboardInput(window);
-        
+        keyboardInput(window, camera, deltaTime);
+
         // Clear the window
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = glm::lookAt(
-            cameraPos,
-            cameraPos + glm::vec3(0.0f, 0.0f, -1.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f)
-        );
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
-
+        glm::mat4 view = camera.GetViewMatrix();
 
         glUseProgram(shaderProgram);
 
-
         // Send matrices
+
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 
         // Lighting and material
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 10.0f, 8.0f, 10.0f);
-        glUniform3fv(glGetUniformLocation(shaderProgram, "viewPos"), 1, &cameraPos[0]);
+        glUniform3fv(glGetUniformLocation(shaderProgram, "viewPos"), 1, &camera.Position[0]);
         glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
         glUniform1f(glGetUniformLocation(shaderProgram, "ka"), 0.2f);
         glUniform1f(glGetUniformLocation(shaderProgram, "kd"), 0.7f);
@@ -244,8 +310,3 @@ int main( void )
     return 0;
 }
 
-void keyboardInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
