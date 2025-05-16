@@ -11,9 +11,73 @@
 #include <common/model.hpp>
 #include <common/light.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+
+struct Vertex 
+{
+    glm::vec3 position;
+    glm::vec2 texCoord;
+    glm::vec3 normal;
+};
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+
+std::vector<Vertex> cubeVertices = {
+    // Back wall (-Z)
+    {{-10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {0.0f, 0.0f,  1.0f}},
+    {{ 10.0f, -10.0f, -10.0f}, {1.0f, 0.0f}, {0.0f, 0.0f,  1.0f}},
+    {{ 10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, {0.0f, 0.0f,  1.0f}},
+    {{ 10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, {0.0f, 0.0f,  1.0f}},
+    {{-10.0f,  10.0f, -10.0f}, {0.0f, 1.0f}, {0.0f, 0.0f,  1.0f}},
+    {{-10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {0.0f, 0.0f,  1.0f}},
+
+    // Front wall (+Z)
+    {{-10.0f, -10.0f,  10.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+    {{ 10.0f, -10.0f,  10.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+    {{ 10.0f,  10.0f,  10.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    {{ 10.0f,  10.0f,  10.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    {{-10.0f,  10.0f,  10.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    {{-10.0f, -10.0f,  10.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+
+    // Left wall (-X)
+    {{-10.0f, -10.0f,  10.0f}, {0.0f, 0.0f}, { 1.0f, 0.0f, 0.0f}},
+    {{-10.0f, -10.0f, -10.0f}, {1.0f, 0.0f}, { 1.0f, 0.0f, 0.0f}},
+    {{-10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}},
+    {{-10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}},
+    {{-10.0f,  10.0f,  10.0f}, {0.0f, 1.0f}, { 1.0f, 0.0f, 0.0f}},
+    {{-10.0f, -10.0f,  10.0f}, {0.0f, 0.0f}, { 1.0f, 0.0f, 0.0f}},
+
+    // Right wall (+X)
+    {{ 10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+    {{ 10.0f, -10.0f,  10.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+    {{ 10.0f,  10.0f,  10.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+    {{ 10.0f,  10.0f,  10.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+    {{ 10.0f,  10.0f, -10.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+    {{ 10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+
+    // Bottom wall (-Y)
+    {{-10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{ 10.0f, -10.0f, -10.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{ 10.0f, -10.0f,  10.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+    {{ 10.0f, -10.0f,  10.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+    {{-10.0f, -10.0f,  10.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+    {{-10.0f, -10.0f, -10.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+
+    // Top wall (+Y)
+    {{-10.0f,  10.0f,  10.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+    {{ 10.0f,  10.0f,  10.0f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+    {{ 10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+    {{ 10.0f,  10.0f, -10.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+    {{-10.0f,  10.0f, -10.0f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+    {{-10.0f,  10.0f,  10.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+};
+
 // Function prototypes
 void keyboardInput(GLFWwindow *window);
 
+GLuint roomVAO, roomVBO;
 int main( void )
 {
     // =========================================================================
@@ -54,6 +118,62 @@ int main( void )
         glfwTerminate();
         return -1;
     }
+
+    GLuint shaderProgram = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // Setup the cube VAO/VBO
+    glGenVertexArrays(1, &roomVAO);
+    glGenBuffers(1, &roomVBO);
+
+    glBindVertexArray(roomVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, roomVBO);
+    glBufferData(GL_ARRAY_BUFFER, cubeVertices.size() * sizeof(Vertex), &cubeVertices[0], GL_STATIC_DRAW);
+
+    // Vertex positions
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
+    // UVs
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+
+    // Normals
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+    glBindVertexArray(0);
+
+    GLuint whiteTex;
+    // === Generate a procedural checkerboard texture ===
+    const int texWidth = 64;
+    const int texHeight = 64;
+    unsigned char checkerData[texWidth * texHeight * 3];
+
+    for (int y = 0; y < texHeight; ++y)
+    {
+        for (int x = 0; x < texWidth; ++x)
+        {
+            int checker = ((x / 8) % 2) ^ ((y / 8) % 2);  // 8x8 checker squares
+            int index = (y * texWidth + x) * 3;
+            checkerData[index + 0] = checker ? 200 : 100; // R
+            checkerData[index + 1] = checker ? 100 : 50;  // G
+            checkerData[index + 2] = checker ? 100 : 50;  // B
+        }
+    }
+
+    glGenTextures(1, &whiteTex);
+    glBindTexture(GL_TEXTURE_2D, whiteTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, checkerData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+
     // -------------------------------------------------------------------------
     // End of window creation
     // =========================================================================
@@ -69,13 +189,56 @@ int main( void )
         
         // Clear the window
         glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 view = glm::lookAt(
+            cameraPos,
+            cameraPos + glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
+
+
+        glUseProgram(shaderProgram);
+
+
+        // Send matrices
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
+
+        // Lighting and material
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 10.0f, 8.0f, 10.0f);
+        glUniform3fv(glGetUniformLocation(shaderProgram, "viewPos"), 1, &cameraPos[0]);
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "ka"), 0.2f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "kd"), 0.7f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "ks"), 0.5f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "Ns"), 32.0f);
+
+        // Texture bind
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, whiteTex);
+        glUniform1i(glGetUniformLocation(shaderProgram, "diffuseMap"), 0);
+
+        // Draw
+        glBindVertexArray(roomVAO);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cubeVertices.size()));
+        glBindVertexArray(0);
+
         
         // Swap buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     
+    glDeleteVertexArrays(1, &roomVAO);
+    glDeleteBuffers(1, &roomVBO);
+    glDeleteTextures(1, &whiteTex);
+    glDeleteProgram(shaderProgram);
+
+
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
     return 0;
